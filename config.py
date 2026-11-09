@@ -15,5 +15,4 @@ class Settings(BaseSettings):
     dashboard_username: str = "admin"
     dashboard_password: str = ""
 
-
 settings = Settings()
