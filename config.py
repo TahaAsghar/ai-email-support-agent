@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     database_url: str
     classifier_model: str = "anthropic:claude-haiku-5-5"
     agent_model: str = "anthropic:claude-sonnet-5-5"
-    poll_interval_seconds: int = 60
+    poll_interval_seconds: int
     dashboard_username: str = "admin"
     dashboard_password: str = ""
 

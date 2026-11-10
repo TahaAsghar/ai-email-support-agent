@@ -3,9 +3,14 @@ from email.utils import parseaddr
 
 from app import db
 from app.gmail import PROCESSING_LABEL, Gmail, get_body, get_headers
+from app.guardrails import skip_reason
 
 logger = logging.getLogger(__name__)
 MAX_ATTEMPTS = 3
+
+
+ACKNOWLEDGEMENT = """Hi,
+Thanks for your email. We received your message and will get back to you soon. """
 
 
 def handle_message(gmail: Gmail, message_id: str) -> None:
@@ -29,8 +34,17 @@ def handle_message(gmail: Gmail, message_id: str) -> None:
 def process(gmail: Gmail, message_id: str) -> tuple[str, dict]:
     message = gmail.get_message(message_id)
     headers = get_headers(message)
+
+    reason = skip_reason(message, headers, gmail.address)
+    if reason:
+        return "skipped", {"reason": reason}
+    
     sender = parseaddr(headers.get("from", ""))[1]
 
     ticket_id = db.upsert_ticket(message["threadId"], sender, headers.get("subject", ""))
     db.save_message(ticket_id, message_id, "in", sender, get_body(message))
-    return "processed", {"action": "saved"}
+    
+    sent = gmail.send_reply(message, ACKNOWLEDGEMENT)
+    db.save_message(ticket_id, sent["id"], "out", gmail.address, ACKNOWLEDGEMENT)
+    db.update_ticket(ticket_id, "answered")
+    return "processed", {"action": "acknowledged"}
