@@ -9,8 +9,10 @@ class Settings(BaseSettings):
     google_client_secret: str
     google_refresh_token: str
     database_url: str
-    classifier_model: str = "anthropic:claude-haiku-5-5"
-    agent_model: str = "anthropic:claude-sonnet-5-5"
+    classifier_model: str
+    agent_model: str
+    base_url: str
+    api_key: str
     poll_interval_seconds: int
     dashboard_username: str = "admin"
     dashboard_password: str = ""

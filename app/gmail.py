@@ -31,23 +31,37 @@ class Gmail:
         ids = {label["name"]: label["id"] for label in labels}
         for name in (PROCESSING_LABEL, ESCALATION_LABEL):
             if name not in ids:
-                label = self.users.labels().create(userId="me", body={"name": name}).execute()
+                label = (
+                    self.users.labels()
+                    .create(userId="me", body={"name": name})
+                    .execute()
+                )
                 ids[name] = label["id"]
         return ids
 
     def list_new_message_ids(self, max_results: int = 10) -> list[str]:
-        response = self.users.messages().list(
-            userId="me",
-            q=f"in:inbox -label:{PROCESSING_LABEL}",
-            maxResults=max_results,
-        ).execute()
+        response = (
+            self.users.messages()
+            .list(
+                userId="me",
+                q=f"in:inbox -label:{PROCESSING_LABEL}",
+                maxResults=max_results,
+            )
+            .execute()
+        )
         return [message["id"] for message in response.get("messages", [])]
 
     def get_message(self, message_id: str) -> dict:
-        return self.users.messages().get(userId="me", id=message_id, format="full").execute()
+        return (
+            self.users.messages()
+            .get(userId="me", id=message_id, format="full")
+            .execute()
+        )
 
     def get_thread(self, thread_id: str) -> dict:
-        return self.users.threads().get(userId="me", id=thread_id, format="full").execute()
+        return (
+            self.users.threads().get(userId="me", id=thread_id, format="full").execute()
+        )
 
     def add_label(self, message_id: str, name: str) -> None:
         self.users.messages().modify(
@@ -63,18 +77,26 @@ class Gmail:
         subject = headers.get("subject", "")
         reply = EmailMessage()
         reply["To"] = headers.get("reply-to") or headers["from"]
-        reply["Subject"] = subject if subject.lower().startswith("re:") else f"Re: {subject}"
+        reply["Subject"] = (
+            subject if subject.lower().startswith("re:") else f"Re: {subject}"
+        )
         reply["In-Reply-To"] = headers["message-id"]
-        reply["References"] = f"{headers.get('references', '')} {headers['message-id']}".strip()
+        reply["References"] = (
+            f"{headers.get('references', '')} {headers['message-id']}".strip()
+        )
         reply.set_content(body)
         raw = base64.urlsafe_b64encode(reply.as_bytes()).decode()
-        return self.users.messages().send(
-            userId="me", body={"raw": raw, "threadId": message["threadId"]}
-        ).execute()
+        return (
+            self.users.messages()
+            .send(userId="me", body={"raw": raw, "threadId": message["threadId"]})
+            .execute()
+        )
 
 
 def get_headers(message: dict) -> dict[str, str]:
-    return {h["name"].lower(): h["value"] for h in message["payload"].get("headers", [])}
+    return {
+        h["name"].lower(): h["value"] for h in message["payload"].get("headers", [])
+    }
 
 
 def get_body(message: dict) -> str:
@@ -114,6 +136,10 @@ def format_thread(thread: dict, own_address: str) -> str:
     parts = [f"Subject: {first.get('subject', '')}"]
     for message in thread["messages"]:
         sender = get_headers(message).get("from", "")
-        role = "Harbor & Pine support" if own_address.lower() in sender.lower() else "Customer"
+        role = (
+            "BaristaCraft support"
+            if own_address.lower() in sender.lower()
+            else "Customer"
+        )
         parts.append(f"{role} ({sender}):\n{strip_quoted(get_body(message))}")
     return "\n\n".join(parts)
