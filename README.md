@@ -139,8 +139,3 @@ Run the playground test script:
 ```bash
 uv run python playground/try_pipeline.py
 ```
-### 3. Test the Decision Pipeline locally
-Run the playground test script:
-```bash
-uv run python playground/try_pipeline.py
-```
