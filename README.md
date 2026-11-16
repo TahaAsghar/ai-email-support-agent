@@ -14,7 +14,7 @@ An automated AI-powered customer support agent built for **BaristaCraft** (an e-
 - ⚙️ **Rules Engine & Decision Pipeline**: Evaluates product issues against defined resolution paths (e.g., pressure-checks, replacement parts, or full replacements) before deciding whether to reply directly or escalate to human support.
 - 🗄️ **PostgreSQL Database & Event Tracking**: Stores customer tickets, incoming/outgoing message history, event processing logs with retry mechanisms, and knowledge base entries.
 - 💻 **Admin Dashboard UI**: Built with React 19, Vite, TypeScript, and Tailwind CSS for real-time monitoring of tickets, processing logs, manual polling triggers, and an inline Knowledge Base editor.
-- 📊 **FastAPI Dashboard Backend**: Exposes REST endpoints protected with HTTP Basic Authentication and serves the production-built React dashboard.
+- 📊 **FastAPI Dashboard Backend**: Exposes REST endpoints protected with JWT Bearer Authentication and serves the production-built React dashboard.
 - ⏱️ **Automated Poller**: Polling loop that continuously processes new inbox messages based on configured polling intervals.
 
 ---
@@ -42,7 +42,7 @@ ai-email-support-agent/
 │   │   │   ├── tickets.tsx        # Ticket history & message viewer page
 │   │   │   ├── events.tsx         # Processing event log viewer
 │   │   │   ├── knowledge-base.tsx # Knowledge Base view & inline editor
-│   │   │   └── login.tsx          # Basic Auth login screen
+│   │   │   └── login.tsx          # JWT login & registration screen
 │   │   ├── lib/              # API client and type definitions
 │   │   ├── App.tsx           # Main App router and authentication state
 │   │   └── main.tsx          # Application entry point
@@ -80,8 +80,7 @@ cp .env.example .env
 | `BASE_URL` | Base URL for LLM provider API |
 | `API_KEY` | API key for LLM provider API |
 | `POLL_INTERVAL_SECONDS` | Polling frequency in seconds (default: `30`) |
-| `DASHBOARD_USERNAME` | Username for accessing the FastAPI dashboard endpoints |
-| `DASHBOARD_PASSWORD` | Password for accessing the FastAPI dashboard endpoints |
+| `JWT_SECRET` | Secret key for signing JWT access tokens (use a high-entropy random string in production) |
 
 ---
 

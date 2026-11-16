@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     base_url: str
     api_key: str
     poll_interval_seconds: int
-    dashboard_username: str = "admin"
-    dashboard_password: str = ""
+    jwt_secret: str
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 1440
 
 settings = Settings()

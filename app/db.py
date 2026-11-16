@@ -1,12 +1,96 @@
+import threading
+
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+from psycopg_pool import ConnectionPool
 
 from config import settings
 
+_pool: ConnectionPool | None = None
+_pool_lock = threading.Lock()
 
-def connect() -> psycopg.Connection:
-    return psycopg.connect(settings.database_url, autocommit=True, row_factory=dict_row)
+
+def open_pool() -> ConnectionPool:
+    """Reuse connections. A fresh connection to the hosted database costs about a second."""
+    global _pool
+    if _pool is None:
+        with _pool_lock:
+            if _pool is None:
+                _pool = ConnectionPool(
+                    settings.database_url,
+                    min_size=1,
+                    max_size=4,
+                    kwargs={"autocommit": True, "row_factory": dict_row},
+                    open=True,
+                )
+    return _pool
+
+
+def close_pool() -> None:
+    global _pool
+    if _pool is not None:
+        _pool.close()
+        _pool = None
+
+
+def connect():
+    return open_pool().connection()
+
+
+def _email(email: str) -> str:
+    return email.strip().lower()
+
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+
+
+def create_user(email: str, name: str, password_hash: str) -> dict | None:
+    """Insert a user. Returns None when the email is already registered."""
+    with connect() as conn:
+        try:
+            return conn.execute(
+                """
+                insert into users (email, name, password_hash)
+                values (%s, %s, %s)
+                returning id, email, name
+                """,
+                (_email(email), name.strip(), password_hash),
+            ).fetchone()
+        except psycopg.errors.UniqueViolation:
+            return None
+
+
+def get_user_by_email(email: str) -> dict | None:
+    """User row including password_hash, for login only."""
+    with connect() as conn:
+        return conn.execute(
+            """
+            select id, email, name, password_hash
+            from users
+            where lower(email) = %s and is_active
+            """,
+            (_email(email),),
+        ).fetchone()
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    with connect() as conn:
+        return conn.execute(
+            """
+            select id, email, name
+            from users
+            where id = %s and is_active
+            """,
+            (user_id,),
+        ).fetchone()
+
+
+# ---------------------------------------------------------------------------
+# Events
+# ---------------------------------------------------------------------------
 
 
 def start_event(gmail_message_id: str) -> dict | None:

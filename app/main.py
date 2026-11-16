@@ -1,28 +1,46 @@
-import secrets
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app import db
+from app.auth import get_current_user, router as auth_router
 from app.poller import poll_once
-from config import settings
-
-app = FastAPI(title="AI customer support")
-security = HTTPBasic(auto_error=False)
 
 
-def require_login(credentials: HTTPBasicCredentials | None = Depends(security)) -> None:
-    valid = (
-        credentials is not None
-        and settings.dashboard_password != ""
-        and secrets.compare_digest(credentials.username.encode(), settings.dashboard_username.encode())
-        and secrets.compare_digest(credentials.password.encode(), settings.dashboard_password.encode())
-    )
-    if not valid:
-        raise HTTPException(status_code=401, detail="Wrong username or password")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    db.open_pool()
+    yield
+    db.close_pool()
+
+
+app = FastAPI(title="AI customer support", lifespan=lifespan)
+
+api = APIRouter(prefix="/api")
+api.include_router(auth_router)
+
+
+@api.get("/events")
+def events(current_user: dict = Depends(get_current_user)) -> list[dict]:
+    return db.list_events()
+
+
+@api.get("/tickets")
+def tickets(current_user: dict = Depends(get_current_user)) -> list[dict]:
+    return db.list_tickets()
+
+
+@api.get("/tickets/{ticket_id}/messages")
+def ticket_messages(ticket_id: int, current_user: dict = Depends(get_current_user)) -> list[dict]:
+    return db.list_messages(ticket_id)
+
+
+@api.get("/knowledge-base")
+def knowledge_base(current_user: dict = Depends(get_current_user)) -> list[dict]:
+    return db.list_knowledge_base()
 
 
 class EntryUpdate(BaseModel):
@@ -30,36 +48,12 @@ class EntryUpdate(BaseModel):
     content: str
 
 
-api = APIRouter(prefix="/api", dependencies=[Depends(require_login)])
-
-
-@api.get("/login")
-def login() -> dict:
-    return {"ok": True}
-
-
-@api.get("/events")
-def events() -> list[dict]:
-    return db.list_events()
-
-
-@api.get("/tickets")
-def tickets() -> list[dict]:
-    return db.list_tickets()
-
-
-@api.get("/tickets/{ticket_id}/messages")
-def ticket_messages(ticket_id: int) -> list[dict]:
-    return db.list_messages(ticket_id)
-
-
-@api.get("/knowledge-base")
-def knowledge_base() -> list[dict]:
-    return db.list_knowledge_base()
-
-
 @api.put("/knowledge-base/{entry_id}")
-def update_entry(entry_id: int, update: EntryUpdate) -> dict:
+def update_entry(
+    entry_id: int,
+    update: EntryUpdate,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
     entry = db.update_knowledge_base_entry(entry_id, update.title, update.content)
     if entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -67,7 +61,7 @@ def update_entry(entry_id: int, update: EntryUpdate) -> dict:
 
 
 @api.post("/poll")
-def poll() -> dict:
+def poll(current_user: dict = Depends(get_current_user)) -> dict:
     return {"messages": poll_once()}
 
 
