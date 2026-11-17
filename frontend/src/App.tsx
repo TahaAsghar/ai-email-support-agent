@@ -1,11 +1,26 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { isLoggedIn, logout } from "@/lib/api"
 import { EventsPage } from "@/pages/events"
 import { KnowledgeBasePage } from "@/pages/knowledge-base"
 import { LoginPage } from "@/pages/login"
 import { TicketsPage } from "@/pages/tickets"
+
+function BrandMark({ size = "sm" }: { size?: "sm" | "lg" }) {
+  const sizeClasses = size === "lg" ? "size-10 text-sm" : "size-8 text-xs"
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className={`flex ${sizeClasses} items-center justify-center rounded-lg bg-foreground text-background font-semibold`}
+      >
+        HP
+      </span>
+      <span className="text-base font-semibold">Harbor &amp; Pine</span>
+    </div>
+  )
+}
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(isLoggedIn())
@@ -22,10 +37,13 @@ export default function App() {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Harbor &amp; Pine support</h1>
-        <Button variant="outline" onClick={logOut}>
-          Log out
-        </Button>
+        <BrandMark />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button variant="outline" onClick={logOut}>
+            Log out
+          </Button>
+        </div>
       </header>
       <Tabs defaultValue="events">
         <TabsList>

@@ -6,7 +6,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app import db
-from app.auth import get_current_user, router as auth_router
+from app.auth import get_current_user
+from app.auth import router as auth_router
 from app.poller import poll_once
 
 
